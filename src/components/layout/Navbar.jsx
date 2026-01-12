@@ -1,4 +1,4 @@
-function Navbar({ variant = 'public' }) {
+function Navbar({ variant = "public" }) {
   return (
     <header className="site-header">
       <div className="brand">
@@ -10,17 +10,19 @@ function Navbar({ variant = 'public' }) {
           decoding="async"
         />
         <div className="brand__text">
-          <span className="brand__name">Kominfo Canva Claim</span>
-          <span className="brand__meta">Claim Canva Pro Lifetime untuk divisi</span>
+          <span className="brand__name">Canva Claim</span>
+          <span className="brand__meta">
+            Claim Canva Pro Lifetime untuk divisi Kominfo
+          </span>
         </div>
       </div>
       <div className="site-header__status">
         <span className="pill">
-          {variant === 'admin' ? 'Admin Dashboard' : 'Formulir Resmi'}
+          {variant === "admin" ? "Admin Dashboard" : "Formulir Resmi"}
         </span>
       </div>
     </header>
-  )
+  );
 }
 
-export default Navbar
+export default Navbar;

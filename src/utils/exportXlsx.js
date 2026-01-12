@@ -1,9 +1,12 @@
-import * as XLSX from 'xlsx'
+import * as XLSX from "xlsx";
 
 function formatDate(value) {
-  if (!value) return ''
-  const date = new Date(value)
-  return date.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+  if (!value) return "";
+  const date = new Date(value);
+  return date.toLocaleString("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }
 
 export function exportSubmissionsToXlsx(rows) {
@@ -12,12 +15,12 @@ export function exportSubmissionsToXlsx(rows) {
     Divisi: row.organization,
     Email: row.email,
     Tanggal: formatDate(row.created_at),
-  }))
+  }));
 
-  const worksheet = XLSX.utils.json_to_sheet(data)
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Claim Canva Pro')
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Claim Canva Pro");
 
-  const dateLabel = new Date().toISOString().slice(0, 10)
-  XLSX.writeFile(workbook, `claim-canva-${dateLabel}.xlsx`)
+  const dateLabel = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(workbook, `Rekap-Email-Canva-${dateLabel}.xlsx`);
 }
