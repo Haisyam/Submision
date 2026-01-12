@@ -1,76 +1,123 @@
-import { useEffect, useRef, useState } from 'react'
-import Navbar from '../components/layout/Navbar'
-import PageShell from '../components/layout/PageShell'
-import Button from '../components/ui/Button'
-import { InputField, SelectField } from '../components/ui/FormField'
-import Modal from '../components/ui/Modal'
-import FeatureCard from '../components/ui/FeatureCard'
-import SectionHeader from '../components/ui/SectionHeader'
-import StatCard from '../components/ui/StatCard'
-import { organizations } from '../data/organizations'
-import { submitEmail } from '../services/submissions'
+import { useEffect, useMemo, useRef, useState } from "react";
+import Navbar from "../components/layout/Navbar";
+import PageShell from "../components/layout/PageShell";
+import Button from "../components/ui/Button";
+import { InputField, SelectField } from "../components/ui/FormField";
+import Modal from "../components/ui/Modal";
+import FeatureCard from "../components/ui/FeatureCard";
+import SectionHeader from "../components/ui/SectionHeader";
+import StatCard from "../components/ui/StatCard";
+import { organizations } from "../data/organizations";
+import { fetchSubmissions, submitEmail } from "../services/submissions";
 
 const features = [
   {
-    title: 'Validasi cepat',
-    description: 'Email divisi langsung dicek agar klaim tidak dobel.',
-    icon: '01',
+    title: "Validasi cepat",
+    description: "Email divisi langsung dicek agar klaim tidak dobel.",
+    icon: "01",
   },
   {
-    title: 'Catatan claim',
-    description: 'Divisi, email, dan waktu claim tersimpan rapi.',
-    icon: '02',
+    title: "Catatan claim",
+    description: "Divisi, email, dan waktu claim tersimpan rapi.",
+    icon: "02",
   },
   {
-    title: 'Akses aman',
-    description: 'Data claim dilindungi dengan aturan akses yang ketat.',
-    icon: '03',
+    title: "Akses aman",
+    description: "Data claim dilindungi dengan aturan akses yang ketat.",
+    icon: "03",
   },
-]
+];
 
 const stats = [
-  { label: 'Divisi kominfo', value: '6+' },
-  { label: 'Claim sekali', value: '1x' },
-  { label: 'Notifikasi instan', value: 'Seketika' },
-]
+  { label: "Divisi kominfo", value: "6+" },
+  { label: "Claim sekali", value: "1x" },
+  { label: "Notifikasi instan", value: "Seketika" },
+];
 
-const initialForm = { organization: '', email: '' }
+const initialForm = { organization: "", email: "" };
 
 function Landing() {
-  const [isReady, setIsReady] = useState(false)
-  const [form, setForm] = useState(initialForm)
-  const [status, setStatus] = useState({ loading: false, error: '' })
-  const [showModal, setShowModal] = useState(false)
-  const formRef = useRef(null)
+  const [isReady, setIsReady] = useState(false);
+  const [form, setForm] = useState(initialForm);
+  const [status, setStatus] = useState({ loading: false, error: "" });
+  const [showModal, setShowModal] = useState(false);
+  const [claimedOrganizations, setClaimedOrganizations] = useState([]);
+  const formRef = useRef(null);
 
   useEffect(() => {
-    const frame = requestAnimationFrame(() => setIsReady(true))
-    return () => cancelAnimationFrame(frame)
-  }, [])
+    const frame = requestAnimationFrame(() => setIsReady(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadClaimed = async () => {
+      const { data, error } = await fetchSubmissions();
+      if (!isMounted || error) return;
+      const claimed = (data || [])
+        .map((row) => row.organization?.trim())
+        .filter(Boolean);
+      setClaimedOrganizations(claimed);
+    };
+    loadClaimed();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const availableOrganizations = useMemo(() => {
+    const normalize = (value) => value?.trim().toLowerCase();
+    const claimedSet = new Set(
+      claimedOrganizations.map((org) => normalize(org)).filter(Boolean)
+    );
+    return organizations.filter(
+      (org) => !claimedSet.has(normalize(org))
+    );
+  }, [claimedOrganizations]);
+
+  useEffect(() => {
+    if (
+      form.organization &&
+      !availableOrganizations.includes(form.organization)
+    ) {
+      setForm((prev) => ({ ...prev, organization: "" }));
+    }
+  }, [availableOrganizations, form.organization]);
 
   const handleChange = (event) => {
-    const { name, value } = event.target
-    setForm((prev) => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = event.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (event) => {
-    event.preventDefault()
-    setStatus({ loading: true, error: '' })
+    event.preventDefault();
+    setStatus({ loading: true, error: "" });
 
-    const { error } = await submitEmail(form)
+    const selectedOrganization = form.organization;
+    const { error } = await submitEmail(form);
 
     if (error) {
-      setStatus({ loading: false, error: error.message || 'Gagal mengirim data.' })
-      return
+      setStatus({
+        loading: false,
+        error: error.message || "Gagal mengirim data.",
+      });
+      return;
     }
 
-    setStatus({ loading: false, error: '' })
-    setForm(initialForm)
-    setShowModal(true)
-  }
+    setStatus({ loading: false, error: "" });
+    setForm(initialForm);
+    if (selectedOrganization) {
+      setClaimedOrganizations((prev) => {
+        const next = new Set(prev);
+        next.add(selectedOrganization);
+        return Array.from(next);
+      });
+    }
+    setShowModal(true);
+  };
 
   return (
-    <PageShell className={isReady ? 'is-ready' : ''}>
+    <PageShell className={isReady ? "is-ready" : ""}>
       <Navbar />
       <main className="landing">
         <section className="hero reveal">
@@ -78,16 +125,16 @@ function Landing() {
             <span className="hero__eyebrow">Kominfo . Canva Pro Lifetime</span>
             <h1>Claim Canva Pro Lifetime khusus divisi Kominfo.</h1>
             <p>
-              Form ini dibuat untuk divisi Kominfo agar claim
-              Canva Pro Lifetime tercatat rapi, cepat, dan aman.
+              Form ini dibuat untuk divisi Kominfo agar claim Canva Pro Lifetime
+              tercatat rapi, cepat, dan aman.
             </p>
             <div className="hero__actions">
               <Button
                 type="button"
                 onClick={() =>
                   formRef.current?.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start',
+                    behavior: "smooth",
+                    block: "start",
                   })
                 }
               >
@@ -110,25 +157,32 @@ function Landing() {
                   description="Pilih divisi Kominfo yang kamu wakili."
                   value={form.organization}
                   onChange={handleChange}
-                  options={organizations}
+                  options={availableOrganizations}
+                  searchable
+                  disabled={!availableOrganizations.length}
                   required
                 />
+                {!availableOrganizations.length ? (
+                  <p className="form-info">Semua divisi sudah claim.</p>
+                ) : null}
                 <InputField
                   id="email"
                   name="email"
                   type="email"
                   label="Email Divisi"
                   description="Gunakan email resmi untuk akses Canva."
-                  placeholder="nama@email.com"
+                  placeholder="nama@gmail.com"
                   value={form.email}
                   onChange={handleChange}
                   autoComplete="email"
                   inputMode="email"
                   required
                 />
-                {status.error ? <p className="form-error">{status.error}</p> : null}
+                {status.error ? (
+                  <p className="form-error">{status.error}</p>
+                ) : null}
                 <Button type="submit" disabled={status.loading}>
-                  {status.loading ? 'Memproses...' : 'Claim'}
+                  {status.loading ? "Memproses..." : "Claim"}
                 </Button>
               </form>
             </div>
@@ -154,44 +208,29 @@ function Landing() {
             ))}
           </div>
         </section>
-
-        <section className="security-note reveal">
-          <SectionHeader
-            eyebrow="Keamanan"
-            title="Akses data disaring dan diaudit"
-            subtitle="Data claim dilindungi dengan autentikasi dan aturan akses yang ketat."
-            align="left"
-          />
-          <div className="security-note__panel">
-            <div>
-              <h3>Perlindungan utama</h3>
-              <ul>
-                <li>Email diverifikasi agar claim tidak dobel.</li>
-                <li>Akses data dibatasi sesuai aturan keamanan.</li>
-                <li>Export .xlsx langsung dari data claim yang valid.</li>
-              </ul>
-            </div>
-            <div className="security-note__highlight">
-              <span className="pill">Rekomendasi</span>
-              <p>
-                Aktifkan aturan akses agar data claim hanya bisa diakses sesuai izin.
-              </p>
-            </div>
-          </div>
-        </section>
       </main>
 
       <footer className="site-footer">
-        <span>Kominfo Canva Claim</span>
-        <span>Claim Canva Pro Lifetime dengan data rapi.</span>
+        <span>Kominfo BEM Universitas Majalengka</span>
+        <span>Claim Canva Pro Lifetime dengan Gratis.</span>
       </footer>
 
       <Modal
         open={showModal}
         title="Claim berhasil"
-        description="Email divisi kamu sudah masuk ke dashboard admin."
+        description="Terima kasih, claim kamu sudah tercatat. Ikuti poin berikut agar undangan tidak terlewat."
         onClose={() => setShowModal(false)}
       >
+        <div className="modal__card">
+          <h4>Checklist setelah submit</h4>
+          <ul className="modal__list">
+            <li>Cek Gmail dari email yang kamu submit secara berkala.</li>
+            <li>Periksa juga folder Spam, Promosi, atau Sosial.</li>
+            <li>Undangan bisa datang bertahap tergantung antrean.</li>
+            <li>Jangan submit ulang, tiap divisi hanya 1x claim.</li>
+            <li>Jika lama tidak masuk, hubungi Admin Grup Kominfo.</li>
+          </ul>
+        </div>
         <div className="modal__actions">
           <Button type="button" onClick={() => setShowModal(false)}>
             Oke, siap
@@ -199,7 +238,7 @@ function Landing() {
         </div>
       </Modal>
     </PageShell>
-  )
+  );
 }
 
-export default Landing
+export default Landing;
